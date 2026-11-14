@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 
+import { API_BASE } from "@/lib/api/base";
 import { authorizeApi, json, logApiError } from "@/lib/dashboard/http";
 import { db } from "@/lib/mongodb";
 
@@ -12,8 +13,7 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json().catch(() => ({}))) as { returnUrl?: string };
-    const apiUrl = process.env.BACKEND_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
-    const serverEndpoint = `${apiUrl.replace(/\/+$/, "").replace(/\/api$/i, "")}/api/billing/portal?userId=${encodeURIComponent(userId)}`;
+    const serverEndpoint = `${API_BASE}/billing/portal?userId=${encodeURIComponent(userId)}`;
 
     try {
       const serverRes = await fetch(serverEndpoint, {

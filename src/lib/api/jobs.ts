@@ -1,11 +1,4 @@
-const configuredApiUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
-const normalizedApiUrl = configuredApiUrl.replace(/\/+$/, "");
-const API_BASE_URL = /^https?:\/\//i.test(normalizedApiUrl)
-  ? /\/api$/i.test(normalizedApiUrl)
-    ? normalizedApiUrl
-    : `${normalizedApiUrl}/api`
-  : normalizedApiUrl;
+import { API_BASE } from "@/lib/api/base";
 
 export const DEFAULT_JOB_LIMIT = 10;
 
@@ -237,16 +230,15 @@ export async function fetchJobs(
   sp.set("page", String(query.page ?? 1));
   sp.set("limit", String(query.limit ?? DEFAULT_JOB_LIMIT));
 
-  const res = await fetch(
-    `${API_BASE_URL}/jobs?${sp.toString()}`,
-    {
-      credentials: "include",
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    },
-  );
+  const url = `${API_BASE}/jobs?${sp.toString()}`;
+  const res = await fetch(url, {
+    credentials: "include",
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
 
   if (!res.ok) {
+    console.error(`[api] fetchJobs failed: ${res.status} ${url}`);
     throw new JobsApiError("Could not load jobs", res.status);
   }
 
@@ -263,18 +255,19 @@ export async function fetchJobs(
 }
 
 export async function fetchPlatformStats(): Promise<PlatformStats> {
-  const response = await fetch(`${API_BASE_URL}/stats`, {
+  const response = await fetch(`${API_BASE}/stats`, {
     credentials: "include",
     cache: "no-store",
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
+    console.error(`[api] fetchPlatformStats failed: ${response.status} ${response.url}`);
     throw new JobsApiError("Could not load platform statistics", response.status);
   }
-  const result = (await response.json()) as {
+  const result = (await response.json().catch(() => null)) as {
     data?: Partial<PlatformStats>;
-  };
-  const data = result.data;
+  } | null;
+  const data = result?.data;
   if (
     !data ||
     typeof data.activeJobs !== "number" ||
@@ -290,16 +283,17 @@ export async function fetchPlatformStats(): Promise<PlatformStats> {
 }
 
 export async function fetchCompanies(): Promise<CompanySummary[]> {
-  const response = await fetch(`${API_BASE_URL}/companies`, {
+  const response = await fetch(`${API_BASE}/companies`, {
     credentials: "include",
     cache: "no-store",
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
+    console.error(`[api] fetchCompanies failed: ${response.status} ${response.url}`);
     throw new JobsApiError("Could not load companies", response.status);
   }
-  const result = (await response.json()) as { data?: CompanySummary[] };
-  if (!Array.isArray(result.data)) {
+  const result = (await response.json().catch(() => null)) as { data?: CompanySummary[] } | null;
+  if (!result || !Array.isArray(result.data)) {
     throw new JobsApiError("The companies response was invalid");
   }
   return result.data;
@@ -307,7 +301,7 @@ export async function fetchCompanies(): Promise<CompanySummary[]> {
 
 export async function fetchCompany(slug: string): Promise<CompanyDetails | null> {
   const response = await fetch(
-    `${API_BASE_URL}/companies/${encodeURIComponent(slug)}`,
+    `${API_BASE}/companies/${encodeURIComponent(slug)}`,
     {
       credentials: "include",
       cache: "no-store",
@@ -316,17 +310,18 @@ export async function fetchCompany(slug: string): Promise<CompanyDetails | null>
   );
   if (response.status === 404) return null;
   if (!response.ok) {
+    console.error(`[api] fetchCompany failed: ${response.status} ${response.url}`);
     throw new JobsApiError("Could not load company details", response.status);
   }
-  const result = (await response.json()) as { data?: CompanyDetails };
-  if (!result.data?.company || !Array.isArray(result.data.jobs)) {
+  const result = (await response.json().catch(() => null)) as { data?: CompanyDetails } | null;
+  if (!result?.data?.company || !Array.isArray(result?.data.jobs)) {
     throw new JobsApiError("The company response was invalid");
   }
   return result.data;
 }
 
 export async function createJob(input: NewJobInput): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/jobs`, {
+  const response = await fetch(`${API_BASE}/jobs`, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -337,9 +332,10 @@ export async function createJob(input: NewJobInput): Promise<void> {
   });
 
   if (!response.ok) {
+    console.error(`[api] createJob failed: ${response.status} ${response.url}`);
     let message = "Could not publish job";
     try {
-      const body = (await response.json()) as {
+      const body = (await response.json().catch(() => ({}))) as {
         error?: unknown;
         message?: unknown;
       };
@@ -353,22 +349,21 @@ export async function createJob(input: NewJobInput): Promise<void> {
 }
 
 export async function updateJob(id: string, input: NewJobInput): Promise<void> {
-  const response = await fetch(
-    `/api/recruiter/jobs/${encodeURIComponent(id)}`,
-    {
-      method: "PATCH",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(input),
+  const url = `${API_BASE}/recruiter/jobs/${encodeURIComponent(id)}`;
+  const response = await fetch(url, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify(input),
+  });
   if (!response.ok) {
+    console.error(`[api] updateJob failed: ${response.status} ${url}`);
     let message = "Could not update job";
     try {
-      const body = (await response.json()) as {
+      const body = (await response.json().catch(() => ({}))) as {
         error?: unknown;
         message?: unknown;
       };
@@ -385,7 +380,7 @@ export async function updateJob(id: string, input: NewJobInput): Promise<void> {
 export async function fetchSavedJobIds(userId?: string | null): Promise<string[]> {
   const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
   try {
-    const res = await fetch(`${API_BASE_URL}/saved-jobs${query}`, {
+    const res = await fetch(`${API_BASE}/saved-jobs${query}`, {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
@@ -407,22 +402,23 @@ export async function fetchSavedJobs(
   userId?: string | null,
 ): Promise<SavedJobRecord[]> {
   const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
-  const res = await fetch(`${API_BASE_URL}/saved-jobs${query}`, {
+  const res = await fetch(`${API_BASE}/saved-jobs${query}`, {
     credentials: "include",
     headers: { Accept: "application/json" },
   });
   if (!res.ok) {
+    console.error(`[api] fetchSavedJobs failed: ${res.status} ${res.url}`);
     throw new JobsApiError("Could not load saved jobs", res.status);
   }
 
-  const json = (await res.json()) as Record<string, unknown> | unknown[];
+  const json = (await res.json().catch(() => null)) as Record<string, unknown> | unknown[] | null;
   let raw: unknown = json;
   if (!Array.isArray(json)) {
     raw =
-      json.data ??
-      json.savedJobs ??
-      json.ids ??
-      (json as Record<string, unknown>).saved;
+      json?.data ??
+      json?.savedJobs ??
+      json?.ids ??
+      (json as Record<string, unknown> | null)?.saved;
   }
   if (!Array.isArray(raw)) {
     throw new JobsApiError("Saved jobs response has an invalid format");
@@ -456,21 +452,26 @@ export async function toggleSavedJob(
   jobId: string,
   saved: boolean,
 ): Promise<boolean> {
-  const res = await fetch(`${API_BASE_URL}/jobs/${encodeURIComponent(jobId)}/save`, {
+  const url = `${API_BASE}/jobs/${encodeURIComponent(jobId)}/save`;
+  const res = await fetch(url, {
     method: saved ? "POST" : "DELETE",
     credentials: "include",
     headers: { Accept: "application/json" },
   });
-  if (!res.ok) throw new JobsApiError("Could not update saved job", res.status);
+  if (!res.ok) {
+    console.error(`[api] toggleSavedJob failed: ${res.status} ${url}`);
+    throw new JobsApiError("Could not update saved job", res.status);
+  }
   if (saved) await recordActivity("job_saved", jobId);
   return saved;
 }
 
 async function recordActivity(type: "applied" | "job_saved", jobId: string) {
   try {
-    const response = await fetch("/api/activity/track", {
+    const url = `${API_BASE}/activity/track`;
+    const response = await fetch(url, {
       method: "POST",
-      credentials: "same-origin",
+      credentials: "include",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
@@ -478,7 +479,7 @@ async function recordActivity(type: "applied" | "job_saved", jobId: string) {
       body: JSON.stringify({ type, jobId }),
     });
     if (!response.ok) {
-      console.error(`Could not record ${type} activity`, response.status);
+      console.error(`Could not record ${type} activity`, response.status, url);
     }
   } catch (error) {
     console.error(`Could not record ${type} activity`, error);
@@ -497,7 +498,7 @@ export async function getJob(
     return null;
   }
 
-  const res = await fetch(`${API_BASE_URL}/jobs/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${API_BASE}/jobs/${encodeURIComponent(id)}`, {
     credentials: "include",
     headers: {
       Accept: "application/json",
@@ -511,11 +512,12 @@ export async function getJob(
   }
 
   if (!res.ok) {
+    console.error(`[api] getJob failed: ${res.status} ${res.url}`);
     throw new JobsApiError("Could not load job details", res.status);
   }
 
-  const json = (await res.json()) as { data?: Job };
-  return json.data ?? null;
+  const json = (await res.json().catch(() => null)) as { data?: Job } | null;
+  return json?.data ?? null;
 }
 
 /**
@@ -524,7 +526,8 @@ export async function getJob(
 export async function applyToJob(
   id: string,
 ): Promise<{ success: boolean; message: string; alreadyApplied?: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/jobs/${encodeURIComponent(id)}/apply`, {
+  const url = `${API_BASE}/jobs/${encodeURIComponent(id)}/apply`;
+  const res = await fetch(url, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -542,6 +545,7 @@ export async function applyToJob(
   }
 
   if (!res.ok) {
+    console.error(`[api] applyToJob failed: ${res.status} ${url}`);
     const errorJson = (await res.json().catch(() => ({}))) as { error?: string };
     throw new JobsApiError(
       errorJson.error || "Could not apply for job",

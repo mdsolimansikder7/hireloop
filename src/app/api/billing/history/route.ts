@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 
+import { API_BASE } from "@/lib/api/base";
 import { authorizeApi, json, logApiError } from "@/lib/dashboard/http";
 import { db } from "@/lib/mongodb";
 
@@ -12,8 +13,7 @@ export async function GET() {
 
   try {
     // 1. Try querying the express server on port 5000 if running
-    const apiUrl = process.env.BACKEND_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
-    const serverEndpoint = `${apiUrl.replace(/\/+$/, "").replace(/\/api$/i, "")}/api/billing/history?userId=${encodeURIComponent(userId)}`;
+    const serverEndpoint = `${API_BASE}/billing/history?userId=${encodeURIComponent(userId)}`;
 
     try {
       const serverRes = await fetch(serverEndpoint, {

@@ -23,6 +23,7 @@ import {
   fetchPlans,
   type PricingPlan,
 } from "@/lib/api/checkout";
+import { fetchBillingSummary } from "@/lib/api/billing";
 
 type Billing = "monthly" | "yearly";
 
@@ -70,11 +71,10 @@ export function PricingSection() {
     if (!session) return;
 
     const controller = new AbortController();
-    fetch("/api/billing/summary", { signal: controller.signal, credentials: "same-origin" })
-      .then((res) => res.json())
-      .then((payload) => {
-        if (payload?.data?.currentPlan?.id) {
-          setCurrentPlanId(payload.data.currentPlan.id);
+    fetchBillingSummary(controller.signal)
+      .then((data) => {
+        if (data.currentPlan?.id) {
+          setCurrentPlanId(data.currentPlan.id);
         }
       })
       .catch(() => {

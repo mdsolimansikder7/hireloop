@@ -1,11 +1,4 @@
-const configuredApiUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
-const normalizedApiUrl = configuredApiUrl.replace(/\/+$/, "");
-const API_BASE_URL = /^https?:\/\//i.test(normalizedApiUrl)
-  ? /\/api$/i.test(normalizedApiUrl)
-    ? normalizedApiUrl
-    : `${normalizedApiUrl}/api`
-  : normalizedApiUrl;
+import { API_BASE } from "@/lib/api/base";
 
 export type CheckoutCurrency = "BDT" | "USD";
 export type BillingPeriod = "monthly" | "yearly";
@@ -108,7 +101,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    const url = `${API_BASE}${path}`;
+    response = await fetch(url, {
       ...init,
       credentials: "include",
       headers: {
@@ -127,6 +121,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     | null;
 
   if (!response.ok) {
+    console.error(`[api] checkout request failed: ${response.status} ${response.url}`);
     throw new CheckoutApiError(
       payload?.error ?? "The checkout request failed.",
       response.status,

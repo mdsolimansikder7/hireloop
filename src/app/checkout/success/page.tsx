@@ -5,6 +5,7 @@ import { CheckoutSuccess } from "@/components/checkout/checkout-success";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/mongodb";
 import { getPlanPrice, getPlan } from "@/lib/plans";
+import { API_BASE } from "@/lib/api/base";
 import type { BillingPeriod, CheckoutSessionRecord } from "@/lib/api/checkout";
 
 export const metadata: Metadata = {
@@ -46,11 +47,9 @@ export default async function CheckoutSuccessPage({
   if (sessionId) {
     try {
       const session = await auth.api.getSession({ headers: await headers() });
-      const apiUrl = process.env.BACKEND_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
-      const normalizedApiUrl = apiUrl.replace(/\/+$/, "").replace(/\/api$/i, "");
       const endpoint = sessionId.startsWith("cs_")
-        ? `${normalizedApiUrl}/api/checkout/session/${encodeURIComponent(sessionId)}`
-        : `${normalizedApiUrl}/api/checkout/payments/${encodeURIComponent(sessionId)}`;
+        ? `${API_BASE}/checkout/session/${encodeURIComponent(sessionId)}`
+        : `${API_BASE}/checkout/payments/${encodeURIComponent(sessionId)}`;
 
       const res = await fetch(endpoint, {
         headers: { Accept: "application/json" },

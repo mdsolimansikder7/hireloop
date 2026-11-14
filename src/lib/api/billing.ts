@@ -1,3 +1,5 @@
+import { API_BASE } from "@/lib/api/base";
+
 export interface BillingPaymentMethod {
   brand: string | null;
   last4: string | null;
@@ -48,20 +50,12 @@ export interface BillingPortalResponse {
   url: string;
 }
 
-const configuredApiUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
-const normalizedApiUrl = configuredApiUrl.replace(/\/+$/, "");
-const API_BASE_URL = /^https?:\/\//i.test(normalizedApiUrl)
-  ? /\/api$/i.test(normalizedApiUrl)
-    ? normalizedApiUrl
-    : `${normalizedApiUrl}/api`
-  : normalizedApiUrl;
-
 async function requestBilling<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    const url = `${API_BASE}${path}`;
+    response = await fetch(url, {
       ...init,
       credentials: "include",
       headers: {
@@ -78,6 +72,7 @@ async function requestBilling<T>(path: string, init?: RequestInit): Promise<T> {
     | null;
 
   if (!response.ok) {
+    console.error(`[api] billing request failed: ${response.status} ${response.url}`);
     throw new Error(payload?.error ?? "The billing request failed.");
   }
 
