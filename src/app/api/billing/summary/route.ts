@@ -113,6 +113,10 @@ export async function GET() {
       ],
     };
 
+    const latest = await db
+      .collection("payments")
+      .findOne(userFilter, { sort: { createdAt: -1 } });
+
     const applicationCount = await applicationsCollection.countDocuments(
       seekerApplicationFilter(new ObjectId(userId)),
     );
@@ -123,10 +127,6 @@ export async function GET() {
     const remainingApplications = isFree
       ? Math.max(0, FREE_PLAN_APPLICATION_LIMIT - applicationCount)
       : null;
-
-    const latest = await db
-      .collection("payments")
-      .findOne(userFilter, { sort: { createdAt: -1 } });
 
     if (latest && latest.plan && latest.plan !== "starter") {
       const planKey = String(latest.plan).toLowerCase() as PlanId;
