@@ -8,13 +8,15 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/mongodb";
 import { redirectForRole, getRole } from "@/lib/roles";
 
+const companyNameSchema = z
+  .string()
+  .trim()
+  .min(2, "Company name must be at least 2 characters")
+  .max(120);
+
 const schema = z.object({
   role: z.enum(["seeker", "recruiter"]),
-  companyName: z
-    .string()
-    .trim()
-    .min(2, "Company name must be at least 2 characters")
-    .max(120),
+  companyName: z.string().trim().max(120).optional(),
 });
 
 export type SetOnboardingRoleResult = {
@@ -39,11 +41,23 @@ export async function setOnboardingRole(
 
   const parsed = schema.safeParse({ role, companyName: companyNameRaw.trim() });
   if (!parsed.success) {
-    const first = parsed.error.issues[0];
-    if (first?.path?.[0] === "companyName") {
-      return { ok: false, error: first.message };
-    }
     return { ok: false, error: "Choose a role to continue" };
+  }
+
+  // The company name is only required (and stored) for recruiters.
+  // Seekers skip it entirely, so it is not validated for them.
+  const isRecruiter = parsed.data.role === "recruiter";
+  let companyName: string | undefined;
+  if (isRecruiter) {
+    const companyResult = companyNameSchema.safeParse(parsed.data.companyName ?? "");
+    if (!companyResult.success) {
+      const first = companyResult.error.issues[0];
+      if (first?.path?.[0] === "companyName") {
+        return { ok: false, error: first.message };
+      }
+      return { ok: false, error: "Choose a role to continue" };
+    }
+    companyName = companyResult.data;
   }
 
   let userId: ObjectId;
@@ -54,11 +68,11 @@ export async function setOnboardingRole(
   }
 
   const buildUpdate =
-    parsed.data.role === "recruiter"
+    isRecruiter
       ? {
           $set: {
             role: "recruiter",
-            companyName: parsed.data.companyName,
+            companyName: companyName ?? "",
             onboardingComplete: true,
           },
         }
