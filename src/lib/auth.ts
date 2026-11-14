@@ -24,10 +24,32 @@ function verifyAdminInviteCode(provided: unknown): boolean {
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, { client }),
+
+  // Production URL (set in Vercel env). Falls back to localhost in dev.
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  trustedOrigins: [
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  ],
+
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
   },
+
+  // Social login providers. Without this block, POST /api/auth/sign-in/social
+  // returns 404 "Provider not found".
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+    linkedin: {
+      // NOTE: env name spelling is LINKDIN (matches .env.example)
+      clientId: process.env.LINKDIN_CLIENT_ID as string,
+      clientSecret: process.env.LINKDIN_CLIENT_SECRET as string,
+    },
+  },
+
   session: {
     // Sessions live for 7 days; the sliding window refreshes once a day.
     expiresIn: 60 * 60 * 24 * 7,
