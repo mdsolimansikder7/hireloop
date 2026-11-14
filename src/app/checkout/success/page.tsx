@@ -46,7 +46,7 @@ export default async function CheckoutSuccessPage({
   if (sessionId) {
     try {
       const session = await auth.api.getSession({ headers: await headers() });
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+      const apiUrl = process.env.BACKEND_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
       const normalizedApiUrl = apiUrl.replace(/\/+$/, "").replace(/\/api$/i, "");
       const endpoint = sessionId.startsWith("cs_")
         ? `${normalizedApiUrl}/api/checkout/session/${encodeURIComponent(sessionId)}`

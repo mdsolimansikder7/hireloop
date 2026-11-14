@@ -1,9 +1,11 @@
 const configuredApiUrl =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
 const normalizedApiUrl = configuredApiUrl.replace(/\/+$/, "");
-const API_BASE_URL = /\/api$/i.test(normalizedApiUrl)
-  ? normalizedApiUrl
-  : `${normalizedApiUrl}/api`;
+const API_BASE_URL = /^https?:\/\//i.test(normalizedApiUrl)
+  ? /\/api$/i.test(normalizedApiUrl)
+    ? normalizedApiUrl
+    : `${normalizedApiUrl}/api`
+  : normalizedApiUrl;
 
 export const DEFAULT_JOB_LIMIT = 10;
 

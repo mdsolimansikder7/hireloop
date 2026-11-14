@@ -48,13 +48,22 @@ export interface BillingPortalResponse {
   url: string;
 }
 
+const configuredApiUrl =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+const normalizedApiUrl = configuredApiUrl.replace(/\/+$/, "");
+const API_BASE_URL = /^https?:\/\//i.test(normalizedApiUrl)
+  ? /\/api$/i.test(normalizedApiUrl)
+    ? normalizedApiUrl
+    : `${normalizedApiUrl}/api`
+  : normalizedApiUrl;
+
 async function requestBilling<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
 
   try {
-    response = await fetch(path, {
+    response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
-      credentials: "same-origin",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(init?.headers ?? {}),
@@ -76,15 +85,15 @@ async function requestBilling<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function fetchBillingSummary(signal?: AbortSignal) {
-  return requestBilling<BillingSummary>("/api/billing/summary", { signal });
+  return requestBilling<BillingSummary>(`/billing/summary`, { signal });
 }
 
 export function fetchBillingHistory(signal?: AbortSignal) {
-  return requestBilling<{ data: BillingHistoryItem[] }>("/api/billing/history", { signal });
+  return requestBilling<{ data: BillingHistoryItem[] }>(`/billing/history`, { signal });
 }
 
 export function createBillingPortal(input?: { returnUrl?: string }) {
-  return requestBilling<{ data: BillingPortalResponse }>("/api/billing/portal", {
+  return requestBilling<{ data: BillingPortalResponse }>(`/billing/portal`, {
     method: "POST",
     body: JSON.stringify(input ?? {}),
   });

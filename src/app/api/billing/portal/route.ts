@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json().catch(() => ({}))) as { returnUrl?: string };
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+    const apiUrl = process.env.BACKEND_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
     const serverEndpoint = `${apiUrl.replace(/\/+$/, "").replace(/\/api$/i, "")}/api/billing/portal?userId=${encodeURIComponent(userId)}`;
 
     try {
