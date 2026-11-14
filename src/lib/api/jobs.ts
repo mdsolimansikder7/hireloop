@@ -376,6 +376,25 @@ export async function updateJob(id: string, input: NewJobInput): Promise<void> {
   }
 }
 
+/** Job ids the current session user has already applied to (session-based). */
+export async function fetchAppliedJobIds(): Promise<string[]> {
+  try {
+    const url = `${API_BASE}/applications/my-job-ids`;
+    const res = await fetch(url, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      console.error(`[api] fetchAppliedJobIds failed: ${res.status} ${url}`);
+      return [];
+    }
+    const json = (await res.json().catch(() => null)) as { data?: string[] } | null;
+    return Array.isArray(json?.data) ? json.data : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Saved job ids for the current session (empty list when signed out / failing). */
 export async function fetchSavedJobIds(userId?: string | null): Promise<string[]> {
   const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";

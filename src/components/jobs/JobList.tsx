@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   DEFAULT_JOB_LIMIT,
+  fetchAppliedJobIds,
   fetchJobs,
   fetchSavedJobIds,
   parseJobsFilters,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/api/jobs";
 import { formatNumber } from "@/lib/format";
 import { useSession } from "@/lib/auth-client";
+import { getRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { JobCard } from "@/components/jobs/JobCard";
 import { SortDropdown, type JobsSortValue } from "@/components/jobs/SortDropdown";
@@ -49,7 +51,9 @@ export function JobList({
 
   const { data: session } = useSession();
   const userId = session?.user?.id ?? null;
+  const isSeeker = getRole(session?.user) === "seeker";
   const [savedIds, setSavedIds] = React.useState<Set<string>>(new Set());
+  const [appliedIds, setAppliedIds] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     if (!userId) return;
@@ -65,6 +69,21 @@ export function JobList({
       cancelled = true;
     };
   }, [userId]);
+
+  React.useEffect(() => {
+    if (!userId || !isSeeker) return;
+    let cancelled = false;
+    fetchAppliedJobIds()
+      .then((ids) => {
+        if (!cancelled) setAppliedIds(new Set(ids));
+      })
+      .catch(() => {
+        /* keep the current applied set */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, isSeeker]);
 
   const runFetch = React.useCallback(async (nextFilters: JobsFiltersState) => {
     setLoading(true);
@@ -249,6 +268,7 @@ export function JobList({
             key={job.id}
             job={job}
             saved={savedIds.has(job.id)}
+            applied={appliedIds.has(job.id)}
             onToggleSave={toggleSave}
           />
         ))}

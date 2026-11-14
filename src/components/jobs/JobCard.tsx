@@ -6,6 +6,7 @@ import {
   Briefcase,
   Building2,
   Clock,
+  Check,
   Flame,
   GraduationCap,
   Repeat,
@@ -81,13 +82,28 @@ function HotJobChip() {
   );
 }
 
+function AppliedChip() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#34d399]/30 bg-[#34d399]/10 px-2 py-1 text-[11px] font-medium text-[#34d399]">
+      <Check className="size-3" aria-hidden="true" />
+      Applied
+    </span>
+  );
+}
+
 interface JobCardProps {
   job: Job;
   saved: boolean;
+  applied?: boolean;
   onToggleSave: (jobId: string, saved: boolean) => void | Promise<void>;
 }
 
-export function JobCard({ job, saved, onToggleSave }: JobCardProps) {
+export function JobCard({
+  job,
+  saved,
+  applied = false,
+  onToggleSave,
+}: JobCardProps) {
   const salary = formatSalaryValue(job.salaryMin, job.salaryMax);
   const TypeIcon = job.type ? JOB_TYPE_ICONS[job.type] ?? Briefcase : undefined;
   const location = [job.companyName, job.location, job.remote ? "(Remote)" : null]
@@ -128,7 +144,8 @@ export function JobCard({ job, saved, onToggleSave }: JobCardProps) {
                 {job.type && TypeIcon ? (
                   <Chip icon={TypeIcon}>{job.type}</Chip>
                 ) : null}
-                {job.easyApply ? <EasyApplyChip /> : null}
+                {!applied && job.easyApply ? <EasyApplyChip /> : null}
+                {applied ? <AppliedChip /> : null}
                 {job.workMode === "Hybrid" ? (
                   <Chip icon={Building2}>Hybrid</Chip>
                 ) : null}
