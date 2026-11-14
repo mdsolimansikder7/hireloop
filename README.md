@@ -34,3 +34,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## User Backfill (legacy users missing `role` / `onboardingComplete`)
+
+If users created before the role feature are missing the `role` / `onboardingComplete` fields (e.g. the first Google sign-up):
+
+```bash
+npm run users:backfill           # dry run - prints counts only
+npm run users:backfill:apply     # --apply - writes the fixes
+```
+
+> **Reminder:** before running `npm run users:backfill:apply`, take a backup (`mongodump` or an Atlas snapshot).
+
+## Admin Promote Script
+
+The platform owner can promote an existing account to admin locally (there is no public endpoint for this):
+
+```bash
+npm run users:make-admin -- <owner@example.com>
+```
+
+This script runs only on the server/local machine with database access; the user must sign out and sign in again for the session to pick up the new role.
