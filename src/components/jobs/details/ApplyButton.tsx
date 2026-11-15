@@ -18,6 +18,7 @@ interface ApplyButtonProps {
   isOwner?: boolean;
   status?: string | null;
   className?: string;
+  onApply?: (jobId: string) => void | Promise<void>;
 }
 
 export function ApplyButton({
@@ -26,6 +27,7 @@ export function ApplyButton({
   isOwner = false,
   status = "open",
   className,
+  onApply,
 }: ApplyButtonProps) {
   const router = useRouter();
   const { data: session, isPending: isSessionPending } = useSession();
@@ -49,6 +51,11 @@ export function ApplyButton({
     }
 
     if (isRecruiterOrAdmin) return;
+
+    if (onApply) {
+      await onApply(jobId);
+      return;
+    }
 
     setIsApplying(true);
     try {

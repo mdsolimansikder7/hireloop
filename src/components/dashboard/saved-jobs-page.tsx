@@ -100,11 +100,9 @@ function formatSalary(job: Job) {
 }
 
 export function SavedJobsPage({
-  userId,
   name,
   image,
 }: {
-  userId: string;
   name: string;
   image: string | null;
 }) {
@@ -125,7 +123,7 @@ export function SavedJobsPage({
     setError(null);
     try {
       const [savedRecords, jobsResponse] = await Promise.all([
-        fetchSavedJobs(userId),
+        fetchSavedJobs(),
         fetchJobs({ page: 1, limit: 100 }),
       ]);
       setRecords(savedRecords);
@@ -137,7 +135,7 @@ export function SavedJobsPage({
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

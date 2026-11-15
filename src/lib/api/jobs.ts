@@ -396,10 +396,9 @@ export async function fetchAppliedJobIds(): Promise<string[]> {
 }
 
 /** Saved job ids for the current session (empty list when signed out / failing). */
-export async function fetchSavedJobIds(userId?: string | null): Promise<string[]> {
-  const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+export async function fetchSavedJobIds(): Promise<string[]> {
   try {
-    const res = await fetch(`${API_BASE}/saved-jobs${query}`, {
+    const res = await fetch(`${API_BASE}/saved-jobs`, {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
@@ -417,53 +416,56 @@ export async function fetchSavedJobIds(userId?: string | null): Promise<string[]
 }
 
 /** Saved-job metadata used by the seeker library. */
-export async function fetchSavedJobs(
-  userId?: string | null,
-): Promise<SavedJobRecord[]> {
-  const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
-  const res = await fetch(`${API_BASE}/saved-jobs${query}`, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) {
-    console.error(`[api] fetchSavedJobs failed: ${res.status} ${res.url}`);
-    throw new JobsApiError("Could not load saved jobs", res.status);
-  }
-
-  const json = (await res.json().catch(() => null)) as Record<string, unknown> | unknown[] | null;
-  let raw: unknown = json;
-  if (!Array.isArray(json)) {
-    raw =
-      json?.data ??
-      json?.savedJobs ??
-      json?.ids ??
-      (json as Record<string, unknown> | null)?.saved;
-  }
-  if (!Array.isArray(raw)) {
-    throw new JobsApiError("Saved jobs response has an invalid format");
-  }
-
-  return raw.flatMap((entry): SavedJobRecord[] => {
-    if (typeof entry === "string" || typeof entry === "number") {
-      return [{ jobId: String(entry), createdAt: null }];
+export async function fetchSavedJobs(): Promise<SavedJobRecord[]> {
+  try {
+    const res = await fetch(`${API_BASE}/saved-jobs`, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      console.error(`[api] fetchSavedJobs failed: ${res.status} ${res.url}`);
+      throw new JobsApiError("Could not load saved jobs", res.status);
     }
-    if (!entry || typeof entry !== "object") return [];
-    const record = entry as Record<string, unknown>;
-    const rawId = record.jobId ?? record.job ?? record.id;
-    const nestedId =
-      rawId && typeof rawId === "object"
-        ? (rawId as Record<string, unknown>)._id ??
-          (rawId as Record<string, unknown>).id
-        : rawId;
-    if (nestedId === undefined || nestedId === null) return [];
-    const createdAt =
-      typeof record.createdAt === "string"
-        ? record.createdAt
-        : record.createdAt instanceof Date
-          ? record.createdAt.toISOString()
-          : null;
-    return [{ jobId: String(nestedId), createdAt }];
-  });
+
+    const json = (await res.json().catch(() => null)) as Record<string, unknown> | unknown[] | null;
+    let raw: unknown = json;
+    if (!Array.isArray(json)) {
+      raw =
+        json?.data ??
+        json?.savedJobs ??
+        json?.ids ??
+        (json as Record<string, unknown> | null)?.saved;
+    }
+    if (!Array.isArray(raw)) {
+      throw new JobsApiError("Saved jobs response has an invalid format");
+    }
+
+    return raw.flatMap((entry): SavedJobRecord[] => {
+      if (typeof entry === "string" || typeof entry === "number") {
+        return [{ jobId: String(entry), createdAt: null }];
+      }
+      if (!entry || typeof entry !== "object") return [];
+      const record = entry as Record<string, unknown>;
+      const rawId = record.jobId ?? record.job ?? record.id;
+      const nestedId =
+        rawId && typeof rawId === "object"
+          ? (rawId as Record<string, unknown>)._id ??
+            (rawId as Record<string, unknown>).id
+          : rawId;
+      if (nestedId === undefined || nestedId === null) return [];
+      const createdAt =
+        typeof record.createdAt === "string"
+          ? record.createdAt
+          : record.createdAt instanceof Date
+            ? record.createdAt.toISOString()
+            : null;
+      return [{ jobId: String(nestedId), createdAt }];
+    });
+  } catch (err) {
+    if (err instanceof JobsApiError) throw err;
+    console.error(`[api] fetchSavedJobs failed:`, err);
+    throw new JobsApiError("Could not load saved jobs");
+  }
 }
 
 /** Toggle a saved job. `saved: true` -> POST /jobs/:id/save, false -> DELETE. */

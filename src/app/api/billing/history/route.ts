@@ -13,7 +13,7 @@ export async function GET() {
 
   try {
     // 1. Try querying the express server on port 5000 if running
-    const serverEndpoint = `${API_BASE}/billing/history?userId=${encodeURIComponent(userId)}`;
+    const serverEndpoint = `${API_BASE}/billing/history`;
 
     try {
       const serverRes = await fetch(serverEndpoint, {

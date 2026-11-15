@@ -56,9 +56,8 @@ export function JobList({
   const [appliedIds, setAppliedIds] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
-    if (!userId) return;
     let cancelled = false;
-    fetchSavedJobIds(userId ?? undefined)
+    fetchSavedJobIds()
       .then((ids) => {
         if (!cancelled) setSavedIds(new Set(ids));
       })
@@ -68,7 +67,7 @@ export function JobList({
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, []);
 
   React.useEffect(() => {
     if (!userId || !isSeeker) return;

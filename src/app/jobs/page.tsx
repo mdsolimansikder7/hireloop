@@ -8,9 +8,7 @@ import {
   type Job,
   type JobsMeta,
 } from "@/lib/api/jobs";
-import { JobList } from "@/components/jobs/JobList";
-import { JobFilters } from "@/components/jobs/JobFilters";
-import { JobSearchBar } from "@/components/jobs/JobSearchBar";
+import { JobsBrowser } from "@/components/jobs/JobsBrowser";
 
 export const metadata: Metadata = {
   title: "Browse Jobs | hireloop",
@@ -54,24 +52,8 @@ export default async function JobsPage({
     <main className="min-h-screen bg-[#0a0a0a]">
       <div className="mx-auto w-full max-w-[1100px] px-6 pt-28 pb-16">
         <Suspense fallback={null}>
-          <JobSearchBar />
+          <JobsBrowser basePath="/jobs" initialJobs={initialJobs} initialMeta={initialMeta} initialError={initialError} />
         </Suspense>
-
-        <div className="mt-6 flex items-start gap-6">
-          <JobFilters facets={initialMeta.facets} />
-          <section
-            aria-label="Job results"
-            className="min-w-0 flex-1"
-          >
-            <Suspense fallback={null}>
-              <JobList
-                initialJobs={initialJobs}
-                initialMeta={initialMeta}
-                initialError={initialError}
-              />
-            </Suspense>
-          </section>
-        </div>
       </div>
     </main>
   );

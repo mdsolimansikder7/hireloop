@@ -44,9 +44,11 @@ function CompanyLogo({
 
 interface JobHeaderProps {
   job: Job;
+  onToggleSave?: (jobId: string, saved: boolean) => void | Promise<void>;
+  onApply?: (jobId: string) => void | Promise<void>;
 }
 
-export function JobHeader({ job }: JobHeaderProps) {
+export function JobHeader({ job, onToggleSave, onApply }: JobHeaderProps) {
   return (
     <header className="rounded-[16px] border border-white/[0.08] bg-gradient-to-r from-[#161616] to-[#0f0f0f] p-6 shadow-sm">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -88,7 +90,7 @@ export function JobHeader({ job }: JobHeaderProps) {
           <SaveJobButton
             jobId={job.id}
             saved={job.isSaved === true}
-            redirectPath={`/jobs/${job.id}`}
+            onToggle={onToggleSave}
             className="relative top-auto right-auto grid size-10 shrink-0 place-items-center rounded-[10px] border border-white/[0.08] bg-[#1a1a1a] text-[#9ca3af] transition-colors hover:bg-[#242424] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5b4ff5] disabled:pointer-events-none disabled:opacity-40"
             iconClassName="size-[18px]"
           />
@@ -99,6 +101,7 @@ export function JobHeader({ job }: JobHeaderProps) {
             isOwner={job.isOwner === true}
             status={job.status}
             className="flex-1 sm:flex-none"
+            onApply={onApply}
           />
         </div>
       </div>

@@ -12,7 +12,6 @@ export default async function SavedJobsRoute() {
 
   return (
     <SavedJobsPage
-      userId={session.user.id}
       name={session.user.name ?? session.user.email ?? "Job seeker"}
       image={session.user.image ?? null}
     />

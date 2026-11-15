@@ -96,6 +96,7 @@ interface JobCardProps {
   saved: boolean;
   applied?: boolean;
   onToggleSave: (jobId: string, saved: boolean) => void | Promise<void>;
+  basePath?: string;
 }
 
 export function JobCard({
@@ -103,6 +104,7 @@ export function JobCard({
   saved,
   applied = false,
   onToggleSave,
+  basePath = "/jobs",
 }: JobCardProps) {
   const salary = formatSalaryValue(job.salaryMin, job.salaryMax);
   const TypeIcon = job.type ? JOB_TYPE_ICONS[job.type] ?? Briefcase : undefined;
@@ -113,7 +115,7 @@ export function JobCard({
   return (
     <article className="relative rounded-2xl border border-white/[0.08] bg-[#111111] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/15">
       <Link
-        href={`/jobs/${job.id}`}
+        href={`${basePath}/${job.id}`}
         className="block rounded-[16px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5b4ff5]"
       >
         <div className="flex items-start gap-4">

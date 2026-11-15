@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json().catch(() => ({}))) as { returnUrl?: string };
-    const serverEndpoint = `${API_BASE}/billing/portal?userId=${encodeURIComponent(userId)}`;
+    const serverEndpoint = `${API_BASE}/billing/portal`;
 
     try {
       const serverRes = await fetch(serverEndpoint, {
@@ -24,7 +24,6 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           returnUrl: body.returnUrl || "/billing",
-          userId,
         }),
         cache: "no-store",
         signal: AbortSignal.timeout(3000),
