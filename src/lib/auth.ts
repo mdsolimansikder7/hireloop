@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { APIError } from "better-auth/api";
+import { jwt } from "better-auth/plugins";
 
 import { db, client } from "@/lib/mongodb";
 import { getRole, type Role } from "@/lib/roles";
@@ -32,6 +33,8 @@ export const auth = betterAuth({
       clientSecret: process.env.LINKDIN_CLIENT_SECRET as string,
     },
   },
+
+  plugins: [jwt()],
 
   session: {
     // Sessions live for 7 days; the sliding window refreshes once a day.

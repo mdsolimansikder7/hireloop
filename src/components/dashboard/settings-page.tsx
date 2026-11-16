@@ -131,9 +131,11 @@ export function SettingsPage({
       const formData = new FormData();
       formData.append("avatar", file);
 
+      const authHeaders = await (await import("@/lib/api/backend-auth")).getBackendAuthHeaders();
       const response = await fetch("/backend/profile/avatar", {
         method: "POST",
         credentials: "include",
+        headers: { ...authHeaders },
         body: formData,
       });
       const result = (await response.json().catch(() => null)) as

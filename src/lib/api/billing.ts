@@ -1,4 +1,5 @@
 import { getApiBase } from "@/lib/api/base";
+import { fetchWithBackendAuth } from "@/lib/api/backend-auth";
 
 export interface BillingPaymentMethod {
   brand: string | null;
@@ -55,9 +56,8 @@ async function requestBilling<T>(path: string, init?: RequestInit): Promise<T> {
 
   try {
     const url = `${getApiBase()}${path}`;
-    response = await fetch(url, {
+    response = await fetchWithBackendAuth(url, {
       ...init,
-      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(init?.headers ?? {}),

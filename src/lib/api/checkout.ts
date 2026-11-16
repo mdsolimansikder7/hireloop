@@ -1,4 +1,5 @@
 import { getApiBase } from "@/lib/api/base";
+import { fetchWithBackendAuth } from "@/lib/api/backend-auth";
 
 export type CheckoutCurrency = "BDT" | "USD";
 export type BillingPeriod = "monthly" | "yearly";
@@ -102,9 +103,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   try {
     const url = `${getApiBase()}${path}`;
-    response = await fetch(url, {
+    response = await fetchWithBackendAuth(url, {
       ...init,
-      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(init?.headers ?? {}),

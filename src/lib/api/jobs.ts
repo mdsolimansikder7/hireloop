@@ -1,4 +1,5 @@
 ﻿import { getApiBase } from "@/lib/api/base";
+import { fetchWithBackendAuth } from "@/lib/api/backend-auth";
 
 export const DEFAULT_JOB_LIMIT = 10;
 
@@ -232,7 +233,7 @@ export async function fetchJobs(
 
   const url = `${getApiBase()}/jobs?${sp.toString()}`;
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithBackendAuth(url, {
       credentials: "include",
       cache: "no-store",
       headers: { Accept: "application/json" },
@@ -266,7 +267,7 @@ export async function fetchJobs(
 export async function fetchPlatformStats(): Promise<PlatformStats> {
   const url = `${getApiBase()}/stats`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithBackendAuth(url, {
       credentials: "include",
       cache: "no-store",
       headers: { Accept: "application/json" },
@@ -304,7 +305,7 @@ export async function fetchPlatformStats(): Promise<PlatformStats> {
 export async function fetchCompanies(): Promise<CompanySummary[]> {
   const url = `${getApiBase()}/companies`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithBackendAuth(url, {
       credentials: "include",
       cache: "no-store",
       headers: { Accept: "application/json" },
@@ -333,7 +334,7 @@ export async function fetchCompanies(): Promise<CompanySummary[]> {
 export async function fetchCompany(slug: string): Promise<CompanyDetails | null> {
   const url = `${getApiBase()}/companies/${encodeURIComponent(slug)}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithBackendAuth(url, {
       credentials: "include",
       cache: "no-store",
       headers: { Accept: "application/json" },
@@ -363,7 +364,7 @@ export async function fetchCompany(slug: string): Promise<CompanyDetails | null>
 export async function createJob(input: NewJobInput): Promise<void> {
   const url = `${getApiBase()}/jobs`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithBackendAuth(url, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -401,7 +402,7 @@ export async function createJob(input: NewJobInput): Promise<void> {
 export async function updateJob(id: string, input: NewJobInput): Promise<void> {
   const url = `${getApiBase()}/recruiter/jobs/${encodeURIComponent(id)}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithBackendAuth(url, {
       method: "PATCH",
       credentials: "include",
       headers: {
@@ -439,7 +440,7 @@ export async function updateJob(id: string, input: NewJobInput): Promise<void> {
 export async function fetchAppliedJobIds(): Promise<string[]> {
   try {
     const url = `${getApiBase()}/applications/my-job-ids`;
-    const res = await fetch(url, {
+    const res = await fetchWithBackendAuth(url, {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
@@ -533,7 +534,7 @@ export async function toggleSavedJob(
   saved: boolean,
 ): Promise<boolean> {
   const url = `${getApiBase()}/jobs/${encodeURIComponent(jobId)}/save`;
-  const res = await fetch(url, {
+  const res = await fetchWithBackendAuth(url, {
     method: saved ? "POST" : "DELETE",
     credentials: "include",
     headers: { Accept: "application/json" },
@@ -549,7 +550,7 @@ export async function toggleSavedJob(
 async function recordActivity(type: "applied" | "job_saved", jobId: string) {
   try {
     const url = `${getApiBase()}/activity/track`;
-    const response = await fetch(url, {
+    const response = await fetchWithBackendAuth(url, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -580,7 +581,7 @@ export async function getJob(
 
   const url = `${getApiBase()}/jobs/${encodeURIComponent(id)}`;
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithBackendAuth(url, {
       credentials: "include",
       headers: {
         Accept: "application/json",
@@ -618,7 +619,7 @@ export async function applyToJob(
 ): Promise<{ success: boolean; message: string; alreadyApplied?: boolean }> {
   const url = `${getApiBase()}/jobs/${encodeURIComponent(id)}/apply`;
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithBackendAuth(url, {
       method: "POST",
       credentials: "include",
       headers: {
