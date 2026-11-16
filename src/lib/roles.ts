@@ -1,6 +1,10 @@
 export type Role = "seeker" | "recruiter" | "admin";
 
+export type SignUpRole = "seeker" | "recruiter";
+
 export const ROLES: Role[] = ["seeker", "recruiter", "admin"];
+
+export const SIGNUP_ROLES: SignUpRole[] = ["seeker", "recruiter"];
 
 export const ROLE_LABELS: Record<Role, string> = {
   seeker: "Job Seeker",

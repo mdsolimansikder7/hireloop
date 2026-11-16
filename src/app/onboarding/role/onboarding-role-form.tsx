@@ -8,10 +8,8 @@ import { z } from "zod";
 import { setOnboardingRole } from "./actions";
 import { RoleSelector } from "@/components/auth/RoleSelector";
 import { AuthInput } from "@/components/auth/AuthInput";
-import type { Role } from "@/lib/roles";
+import type { SignUpRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
-
-type OnboardingRole = "seeker" | "recruiter";
 
 const companyNameSchema = z
   .string()
@@ -20,7 +18,7 @@ const companyNameSchema = z
 
 export function OnboardingRoleForm() {
   const router = useRouter();
-  const [role, setRole] = useState<OnboardingRole>("seeker");
+  const [role, setRole] = useState<SignUpRole>("seeker");
   const [companyName, setCompanyName] = useState("");
   const [errors, setErrors] = useState<{
     role?: string;
@@ -37,11 +35,7 @@ export function OnboardingRoleForm() {
     }));
   };
 
-  function handleRoleChange(next: Role) {
-    // Admin is never selectable through social onboarding.
-    if (next === "admin") {
-      return;
-    }
+  function handleRoleChange(next: SignUpRole) {
     setRole(next);
     // Clear the other role's extra field and its errors.
     if (next !== "recruiter") {

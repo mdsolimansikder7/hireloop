@@ -13,7 +13,7 @@ import {
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
-import { redirectForRole } from "@/lib/roles";
+import { redirectForRole, type SignUpRole } from "@/lib/roles";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { PasswordStrength } from "@/components/auth/PasswordStrength";
@@ -22,8 +22,6 @@ import { SocialButtons } from "@/components/auth/SocialButtons";
 import { Button } from "@/components/ui/button";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-type SignUpRole = "seeker" | "recruiter";
 
 const signUpSchema = z
   .object({

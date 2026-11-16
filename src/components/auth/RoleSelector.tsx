@@ -5,31 +5,41 @@ import { Shield, User, Users, type LucideIcon } from "lucide-react"
 
 import type { Role } from "@/lib/roles"
 
-type RoleOption = {
-  value: Role
+type RoleOption<T extends Role> = {
+  value: T
   label: string
   icon: LucideIcon
 }
 
-const ALL_OPTIONS: RoleOption[] = [
+const ALL_OPTIONS: RoleOption<Role>[] = [
   { value: "seeker", label: "Job Seeker", icon: Users },
   { value: "recruiter", label: "Recruiter", icon: User },
   { value: "admin", label: "Admin", icon: Shield },
 ]
 
-export interface RoleSelectorProps {
-  value: Role
-  onChange: (role: Role) => void
+export interface RoleSelectorProps<T extends Role = Role> {
+  value: T
+  onChange: (role: T) => void
   error?: string
-  /** Limit selectable roles, e.g. social onboarding (["seeker", "recruiter"]). */
-  roles?: Role[]
+  /** Limit selectable roles, e.g. signup/onboarding (["seeker", "recruiter"]). */
+  roles?: readonly T[]
 }
 
-export function RoleSelector({ value, onChange, error, roles }: RoleSelectorProps) {
-  const options = roles ? ALL_OPTIONS.filter((o) => roles.includes(o.value)) : ALL_OPTIONS
+export function RoleSelector<T extends Role = Role>({
+  value,
+  onChange,
+  error,
+  roles,
+}: RoleSelectorProps<T>) {
+  const options = (roles
+    ? ALL_OPTIONS.filter((o): o is RoleOption<T> =>
+        (roles as readonly Role[]).includes(o.value),
+      )
+    : (ALL_OPTIONS as RoleOption<T>[]))
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = options.findIndex((o) => o.value === value)
+    if (currentIndex === -1 || options.length === 0) return
     let next: number
 
     switch (event.key) {
