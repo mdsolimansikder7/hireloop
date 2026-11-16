@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building,
-  KeyRound,
   LoaderCircle,
   Lock,
   Mail,
@@ -14,7 +13,7 @@ import {
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
-import { redirectForRole, type Role } from "@/lib/roles";
+import { redirectForRole } from "@/lib/roles";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { PasswordStrength } from "@/components/auth/PasswordStrength";
@@ -23,6 +22,8 @@ import { SocialButtons } from "@/components/auth/SocialButtons";
 import { Button } from "@/components/ui/button";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type SignUpRole = "seeker" | "recruiter";
 
 const signUpSchema = z
   .object({
@@ -37,9 +38,8 @@ const signUpSchema = z
     terms: z.boolean().refine((v) => v, {
       message: "You must accept the terms to continue",
     }),
-    role: z.enum(["seeker", "recruiter", "admin"]),
+    role: z.enum(["seeker", "recruiter"]),
     companyName: z.string().optional(),
-    adminInviteCode: z.string().optional(),
   })
   .superRefine((values, ctx) => {
     if (values.confirmPassword !== values.password) {
@@ -65,13 +65,6 @@ const signUpSchema = z
         });
       }
     }
-    if (values.role === "admin" && !(values.adminInviteCode ?? "").trim()) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["adminInviteCode"],
-        message: "Admin invite code is required",
-      });
-    }
   });
 
 type FieldErrors = {
@@ -82,14 +75,12 @@ type FieldErrors = {
   terms?: string;
   role?: string;
   companyName?: string;
-  adminInviteCode?: string;
 };
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [role, setRole] = useState<Role>("seeker");
+  const [role, setRole] = useState<SignUpRole>("seeker");
   const [companyName, setCompanyName] = useState("");
-  const [adminInviteCode, setAdminInviteCode] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -119,18 +110,14 @@ export default function SignUpPage() {
     terms,
     role,
     companyName,
-    adminInviteCode,
   });
 
-  function handleRoleChange(nextRole: Role) {
+  function handleRoleChange(nextRole: SignUpRole) {
     setRole(nextRole);
-    // Clear the other role's extra field and its errors.
     if (nextRole !== "recruiter") setCompanyName("");
-    if (nextRole !== "admin") setAdminInviteCode("");
     setErrors((p) => ({
       ...p,
       companyName: undefined,
-      adminInviteCode: undefined,
     }));
   }
 
@@ -156,7 +143,6 @@ export default function SignUpPage() {
         "password",
         "confirmPassword",
         "companyName",
-        "adminInviteCode",
       ] as const
     ).find((key) => next[key]);
     if (firstInvalidField) {
@@ -172,7 +158,6 @@ export default function SignUpPage() {
       password,
       role,
       companyName: role === "recruiter" ? companyName.trim() : undefined,
-      adminInviteCode: role === "admin" ? adminInviteCode : undefined,
       callbackURL: redirectForRole(role),
     });
     setLoading(false);
@@ -244,6 +229,7 @@ export default function SignUpPage() {
             value={role}
             onChange={handleRoleChange}
             error={errors.role}
+            roles={["seeker", "recruiter"]}
           />
 
           {/* Animated expand/collapse container for role-specific fields */}
@@ -275,31 +261,6 @@ export default function SignUpPage() {
                   onBlur={() => validateField("companyName")}
                   disabled={role !== "recruiter" || loading}
                 />
-              ) : null}
-
-              {role === "admin" ? (
-                <div>
-                  <AuthInput
-                    id="adminInviteCode"
-                    label="Admin invite code"
-                    type="password"
-                    placeholder="Enter your invite code"
-                    icon={KeyRound}
-                    value={adminInviteCode}
-                    onChange={(v) => {
-                      setAdminInviteCode(v);
-                      setErrors((p) => ({ ...p, adminInviteCode: undefined }));
-                    }}
-                    error={errors.adminInviteCode}
-                    autoComplete="off"
-                    name="adminInviteCode"
-                    onBlur={() => validateField("adminInviteCode")}
-                    disabled={role !== "admin" || loading}
-                  />
-                  <p className="mt-1.5 text-[11px] text-[#9ca3af]">
-                    Admin accounts need an invite code from the platform owner.
-                  </p>
-                </div>
               ) : null}
             </div>
           </div>

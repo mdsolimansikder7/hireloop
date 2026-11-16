@@ -1,26 +1,9 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { APIError } from "better-auth/api";
-import { createHash, timingSafeEqual } from "crypto";
 
 import { db, client } from "@/lib/mongodb";
 import { getRole, type Role } from "@/lib/roles";
-
-// Server-only secret. Never expose it to the client (no NEXT_PUBLIC_ prefix)
-// and never log it.
-const ADMIN_INVITE_CODE = process.env.ADMIN_INVITE_CODE;
-
-/**
- * Constant-time comparison: hash both sides so lengths always match,
- * then use timingSafeEqual.
- */
-function verifyAdminInviteCode(provided: unknown): boolean {
-  if (!ADMIN_INVITE_CODE) return false;
-  if (typeof provided !== "string" || provided.length === 0) return false;
-  const expected = createHash("sha256").update(ADMIN_INVITE_CODE).digest();
-  const received = createHash("sha256").update(provided).digest();
-  return timingSafeEqual(expected, received);
-}
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, { client }),
@@ -59,7 +42,7 @@ export const auth = betterAuth({
     // /onboarding/role server action (which writes MongoDB directly) and
     // bounce users back to onboarding.
   },
-  // Throttle sign-up attempts so the admin invite code cannot be brute-forced.
+  // Throttle sign-up attempts.
   rateLimit: {
     enabled: true,
     window: 60,
@@ -97,14 +80,6 @@ export const auth = betterAuth({
         defaultValue: false,
         input: false,
       },
-      // Transport-only field: client-sent invite code that is verified in the
-      // create hook and never persisted (also hidden from API responses).
-      adminInviteCode: {
-        type: "string",
-        required: false,
-        input: true,
-        returned: false,
-      },
     },
     // Server-side provisioning gate. `source.method` distinguishes
     // "email-password" from "oauth", so social users are enforced here too.
@@ -130,8 +105,7 @@ export const auth = betterAuth({
           // Social sign-up (Google / LinkedIn) provisions users inside a
           // "/callback/*" endpoint. Those accounts always start as Job Seeker
           // with onboarding incomplete - role selection happens on
-          // /onboarding/role afterwards, and admin can never be reached
-          // through social login.
+          // /onboarding/role afterwards.
           const isSocial =
             typeof ctx?.path === "string" && ctx.path.includes("/callback");
 
@@ -141,28 +115,15 @@ export const auth = betterAuth({
             data.role = "seeker";
             data.onboardingComplete = false;
             data.companyName = undefined;
-            data.adminInviteCode = undefined;
             return { data };
           }
 
-          // Never trust the role sent from the browser: only these three
-          // values are meaningful, anything else falls back to "seeker".
+          // Never trust the role sent from the browser: signup may only create
+          // "seeker" or "recruiter" accounts; anything else falls back to "seeker".
           const requestedRole: Role =
-            data.role === "recruiter" || data.role === "admin"
-              ? (data.role as Role)
-              : "seeker";
+            data.role === "recruiter" ? "recruiter" : "seeker";
 
-          data.adminInviteCode = undefined; // never stored in the database
-
-          if (requestedRole === "admin") {
-            const inviteCode = user.adminInviteCode;
-            if (!verifyAdminInviteCode(inviteCode)) {
-              throw new APIError("UNPROCESSABLE_ENTITY", {
-                message: "Invalid admin invite code",
-              });
-            }
-            data.companyName = undefined;
-          } else if (requestedRole === "recruiter") {
+          if (requestedRole === "recruiter") {
             const companyName =
               typeof data.companyName === "string"
                 ? data.companyName.trim()
@@ -197,9 +158,6 @@ export const auth = betterAuth({
 
           if (data.role !== undefined && data.role !== fallbackRole) {
             overrides.role = fallbackRole;
-          }
-          if (data.adminInviteCode !== undefined) {
-            overrides.adminInviteCode = undefined;
           }
           if (data.onboardingComplete !== undefined) {
             overrides.onboardingComplete = Boolean(
