@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/api/base";
+import { getApiBase } from "@/lib/api/base";
 
 export type CheckoutCurrency = "BDT" | "USD";
 export type BillingPeriod = "monthly" | "yearly";
@@ -101,7 +101,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
 
   try {
-    const url = `${API_BASE}${path}`;
+    const url = `${getApiBase()}${path}`;
     response = await fetch(url, {
       ...init,
       credentials: "include",
@@ -110,7 +110,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
         ...(init?.headers ?? {}),
       },
     });
-  } catch {
+  } catch (error) {
+    console.error(`[api] checkout request network error: url=${getApiBase()}${path}`, error);
     throw new CheckoutApiError(
       "Could not reach the Hireloop API. Make sure the backend is running.",
     );

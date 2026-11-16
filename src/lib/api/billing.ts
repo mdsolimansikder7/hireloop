@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/api/base";
+import { getApiBase } from "@/lib/api/base";
 
 export interface BillingPaymentMethod {
   brand: string | null;
@@ -54,7 +54,7 @@ async function requestBilling<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
 
   try {
-    const url = `${API_BASE}${path}`;
+    const url = `${getApiBase()}${path}`;
     response = await fetch(url, {
       ...init,
       credentials: "include",
@@ -63,7 +63,8 @@ async function requestBilling<T>(path: string, init?: RequestInit): Promise<T> {
         ...(init?.headers ?? {}),
       },
     });
-  } catch {
+  } catch (error) {
+    console.error(`[api] billing request network error: url=${getApiBase()}${path}`, error);
     throw new Error("Could not reach the Hireloop billing service.");
   }
 

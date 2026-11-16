@@ -1,14 +1,15 @@
-function resolveApiBase(): string {
-  if (typeof window === "undefined") {
-    return (
-      process.env.BACKEND_URL ??
-      "https://hireloop-server-blush.vercel.app/api"
-    ).replace(/\/+$/, "");
-  }
-
-  return (
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"
-  ).replace(/\/+$/, "");
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, "");
 }
 
-export const API_BASE = resolveApiBase();
+export function getApiBase(): string {
+  if (typeof window === "undefined") {
+    return normalizeBaseUrl(
+      process.env.API_URL ?? "https://hireloop-server-blush.vercel.app/api",
+    );
+  }
+
+  return "/backend";
+}
+
+export const API_BASE = getApiBase();

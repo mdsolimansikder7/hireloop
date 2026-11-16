@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/api/base";
+﻿import { getApiBase } from "@/lib/api/base";
 
 export const DEFAULT_JOB_LIMIT = 10;
 
@@ -230,156 +230,215 @@ export async function fetchJobs(
   sp.set("page", String(query.page ?? 1));
   sp.set("limit", String(query.limit ?? DEFAULT_JOB_LIMIT));
 
-  const url = `${API_BASE}/jobs?${sp.toString()}`;
-  const res = await fetch(url, {
-    credentials: "include",
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-  });
-
-  if (!res.ok) {
-    console.error(`[api] fetchJobs failed: ${res.status} ${url}`);
-    throw new JobsApiError("Could not load jobs", res.status);
-  }
-
-  const json = (await res.json()) as Partial<JobsResponse>;
-  const data = Array.isArray(json.data) ? json.data : [];
-  const meta = json.meta ?? {
-    page: query.page ?? 1,
-    limit: query.limit ?? DEFAULT_JOB_LIMIT,
-    total: 0,
-    totalPages: 0,
-  };
-
-  return { data, meta };
-}
-
-export async function fetchPlatformStats(): Promise<PlatformStats> {
-  const response = await fetch(`${API_BASE}/stats`, {
-    credentials: "include",
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) {
-    console.error(`[api] fetchPlatformStats failed: ${response.status} ${response.url}`);
-    throw new JobsApiError("Could not load platform statistics", response.status);
-  }
-  const result = (await response.json().catch(() => null)) as {
-    data?: Partial<PlatformStats>;
-  } | null;
-  const data = result?.data;
-  if (
-    !data ||
-    typeof data.activeJobs !== "number" ||
-    typeof data.newJobsThisMonth !== "number" ||
-    typeof data.companies !== "number" ||
-    typeof data.jobSeekers !== "number" ||
-    (data.satisfactionRate !== null &&
-      typeof data.satisfactionRate !== "number")
-  ) {
-    throw new JobsApiError("The platform statistics response was invalid");
-  }
-  return data as PlatformStats;
-}
-
-export async function fetchCompanies(): Promise<CompanySummary[]> {
-  const response = await fetch(`${API_BASE}/companies`, {
-    credentials: "include",
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) {
-    console.error(`[api] fetchCompanies failed: ${response.status} ${response.url}`);
-    throw new JobsApiError("Could not load companies", response.status);
-  }
-  const result = (await response.json().catch(() => null)) as { data?: CompanySummary[] } | null;
-  if (!result || !Array.isArray(result.data)) {
-    throw new JobsApiError("The companies response was invalid");
-  }
-  return result.data;
-}
-
-export async function fetchCompany(slug: string): Promise<CompanyDetails | null> {
-  const response = await fetch(
-    `${API_BASE}/companies/${encodeURIComponent(slug)}`,
-    {
+  const url = `${getApiBase()}/jobs?${sp.toString()}`;
+  try {
+    const res = await fetch(url, {
       credentials: "include",
       cache: "no-store",
       headers: { Accept: "application/json" },
-    },
-  );
-  if (response.status === 404) return null;
-  if (!response.ok) {
-    console.error(`[api] fetchCompany failed: ${response.status} ${response.url}`);
-    throw new JobsApiError("Could not load company details", response.status);
+    });
+
+    if (!res.ok) {
+      console.error(`[api] fetchJobs failed: ${res.status} ${url}`);
+      throw new JobsApiError("Could not load jobs", res.status);
+    }
+
+    const json = (await res.json()) as Partial<JobsResponse>;
+    const data = Array.isArray(json.data) ? json.data : [];
+    const meta = json.meta ?? {
+      page: query.page ?? 1,
+      limit: query.limit ?? DEFAULT_JOB_LIMIT,
+      total: 0,
+      totalPages: 0,
+    };
+
+    return { data, meta };
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] fetchJobs error: status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
+    throw error;
   }
-  const result = (await response.json().catch(() => null)) as { data?: CompanyDetails } | null;
-  if (!result?.data?.company || !Array.isArray(result?.data.jobs)) {
-    throw new JobsApiError("The company response was invalid");
+}
+
+export async function fetchPlatformStats(): Promise<PlatformStats> {
+  const url = `${getApiBase()}/stats`;
+  try {
+    const response = await fetch(url, {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      console.error(`[api] fetchPlatformStats failed: ${response.status} ${url}`);
+      throw new JobsApiError("Could not load platform statistics", response.status);
+    }
+    const result = (await response.json().catch(() => null)) as {
+      data?: Partial<PlatformStats>;
+    } | null;
+    const data = result?.data;
+    if (
+      !data ||
+      typeof data.activeJobs !== "number" ||
+      typeof data.newJobsThisMonth !== "number" ||
+      typeof data.companies !== "number" ||
+      typeof data.jobSeekers !== "number" ||
+      (data.satisfactionRate !== null &&
+        typeof data.satisfactionRate !== "number")
+    ) {
+      throw new JobsApiError("The platform statistics response was invalid");
+    }
+    return data as PlatformStats;
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] fetchPlatformStats error: status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
+    throw error;
   }
-  return result.data;
+}
+
+export async function fetchCompanies(): Promise<CompanySummary[]> {
+  const url = `${getApiBase()}/companies`;
+  try {
+    const response = await fetch(url, {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      console.error(`[api] fetchCompanies failed: ${response.status} ${url}`);
+      throw new JobsApiError("Could not load companies", response.status);
+    }
+    const result = (await response.json().catch(() => null)) as {
+      data?: CompanySummary[];
+    } | null;
+    if (!result || !Array.isArray(result.data)) {
+      throw new JobsApiError("The companies response was invalid");
+    }
+    return result.data;
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] fetchCompanies error: status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
+    throw error;
+  }
+}
+
+export async function fetchCompany(slug: string): Promise<CompanyDetails | null> {
+  const url = `${getApiBase()}/companies/${encodeURIComponent(slug)}`;
+  try {
+    const response = await fetch(url, {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      console.error(`[api] fetchCompany failed: ${response.status} ${url}`);
+      throw new JobsApiError("Could not load company details", response.status);
+    }
+    const result = (await response.json().catch(() => null)) as {
+      data?: CompanyDetails;
+    } | null;
+    if (!result?.data?.company || !Array.isArray(result?.data.jobs)) {
+      throw new JobsApiError("The company response was invalid");
+    }
+    return result.data;
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] fetchCompany error: status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
+    throw error;
+  }
 }
 
 export async function createJob(input: NewJobInput): Promise<void> {
-  const response = await fetch(`${API_BASE}/jobs`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
+  const url = `${getApiBase()}/jobs`;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
 
-  if (!response.ok) {
-    console.error(`[api] createJob failed: ${response.status} ${response.url}`);
-    let message = "Could not publish job";
-    try {
-      const body = (await response.json().catch(() => ({}))) as {
-        error?: unknown;
-        message?: unknown;
-      };
-      if (typeof body.message === "string") message = body.message;
-      else if (typeof body.error === "string") message = body.error;
-    } catch {
-      // The service may return an empty or non-JSON error response.
+    if (!response.ok) {
+      console.error(`[api] createJob failed: ${response.status} ${url}`);
+      let message = "Could not publish job";
+      try {
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: unknown;
+          message?: unknown;
+        };
+        if (typeof body.message === "string") message = body.message;
+        else if (typeof body.error === "string") message = body.error;
+      } catch {
+        // The service may return an empty or non-JSON error response.
+      }
+      throw new JobsApiError(message, response.status);
     }
-    throw new JobsApiError(message, response.status);
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] createJob error: status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
+    throw error;
   }
 }
 
 export async function updateJob(id: string, input: NewJobInput): Promise<void> {
-  const url = `${API_BASE}/recruiter/jobs/${encodeURIComponent(id)}`;
-  const response = await fetch(url, {
-    method: "PATCH",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-  if (!response.ok) {
-    console.error(`[api] updateJob failed: ${response.status} ${url}`);
-    let message = "Could not update job";
-    try {
-      const body = (await response.json().catch(() => ({}))) as {
-        error?: unknown;
-        message?: unknown;
-      };
-      if (typeof body.message === "string") message = body.message;
-      else if (typeof body.error === "string") message = body.error;
-    } catch {
-      // The service may return an empty or non-JSON error response.
+  const url = `${getApiBase()}/recruiter/jobs/${encodeURIComponent(id)}`;
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+    if (!response.ok) {
+      console.error(`[api] updateJob failed: ${response.status} ${url}`);
+      let message = "Could not update job";
+      try {
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: unknown;
+          message?: unknown;
+        };
+        if (typeof body.message === "string") message = body.message;
+        else if (typeof body.error === "string") message = body.error;
+      } catch {
+        // The service may return an empty or non-JSON error response.
+      }
+      throw new JobsApiError(message, response.status);
     }
-    throw new JobsApiError(message, response.status);
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] updateJob error: status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
+    throw error;
   }
 }
 
 /** Job ids the current session user has already applied to (session-based). */
 export async function fetchAppliedJobIds(): Promise<string[]> {
   try {
-    const url = `${API_BASE}/applications/my-job-ids`;
+    const url = `${getApiBase()}/applications/my-job-ids`;
     const res = await fetch(url, {
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -398,7 +457,7 @@ export async function fetchAppliedJobIds(): Promise<string[]> {
 /** Saved job ids for the current session (empty list when signed out / failing). */
 export async function fetchSavedJobIds(): Promise<string[]> {
   try {
-    const res = await fetch(`${API_BASE}/saved-jobs`, {
+    const res = await fetch(`${getApiBase()}/saved-jobs`, {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
@@ -418,7 +477,7 @@ export async function fetchSavedJobIds(): Promise<string[]> {
 /** Saved-job metadata used by the seeker library. */
 export async function fetchSavedJobs(): Promise<SavedJobRecord[]> {
   try {
-    const res = await fetch(`${API_BASE}/saved-jobs`, {
+    const res = await fetch(`${getApiBase()}/saved-jobs`, {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
@@ -473,7 +532,7 @@ export async function toggleSavedJob(
   jobId: string,
   saved: boolean,
 ): Promise<boolean> {
-  const url = `${API_BASE}/jobs/${encodeURIComponent(jobId)}/save`;
+  const url = `${getApiBase()}/jobs/${encodeURIComponent(jobId)}/save`;
   const res = await fetch(url, {
     method: saved ? "POST" : "DELETE",
     credentials: "include",
@@ -489,7 +548,7 @@ export async function toggleSavedJob(
 
 async function recordActivity(type: "applied" | "job_saved", jobId: string) {
   try {
-    const url = `${API_BASE}/activity/track`;
+    const url = `${getApiBase()}/activity/track`;
     const response = await fetch(url, {
       method: "POST",
       credentials: "include",
@@ -519,26 +578,36 @@ export async function getJob(
     return null;
   }
 
-  const res = await fetch(`${API_BASE}/jobs/${encodeURIComponent(id)}`, {
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      ...(options?.cookie ? { cookie: options.cookie } : {}),
-    },
-    cache: "no-store",
-  });
+  const url = `${getApiBase()}/jobs/${encodeURIComponent(id)}`;
+  try {
+    const res = await fetch(url, {
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        ...(options?.cookie ? { cookie: options.cookie } : {}),
+      },
+      cache: "no-store",
+    });
 
-  if (res.status === 404 || res.status === 400) {
-    return null;
+    if (res.status === 404 || res.status === 400) {
+      return null;
+    }
+
+    if (!res.ok) {
+      console.error(`[api] getJob failed: ${res.status} ${url}`);
+      throw new JobsApiError("Could not load job details", res.status);
+    }
+
+    const json = (await res.json().catch(() => null)) as { data?: Job } | null;
+    return json?.data ?? null;
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] getJob error: status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
+    throw error;
   }
-
-  if (!res.ok) {
-    console.error(`[api] getJob failed: ${res.status} ${res.url}`);
-    throw new JobsApiError("Could not load job details", res.status);
-  }
-
-  const json = (await res.json().catch(() => null)) as { data?: Job } | null;
-  return json?.data ?? null;
 }
 
 /**
@@ -547,41 +616,52 @@ export async function getJob(
 export async function applyToJob(
   id: string,
 ): Promise<{ success: boolean; message: string; alreadyApplied?: boolean }> {
-  const url = `${API_BASE}/jobs/${encodeURIComponent(id)}/apply`;
-  const res = await fetch(url, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-  });
+  const url = `${getApiBase()}/jobs/${encodeURIComponent(id)}/apply`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
 
-  if (res.status === 409) {
-    return {
-      success: false,
-      alreadyApplied: true,
-      message: "Already applied for this job",
+    if (res.status === 409) {
+      return {
+        success: false,
+        alreadyApplied: true,
+        message: "Already applied for this job",
+      };
+    }
+
+    if (!res.ok) {
+      console.error(`[api] applyToJob failed: ${res.status} ${url}`);
+      const errorJson = (await res.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new JobsApiError(
+        errorJson.error || "Could not apply for job",
+        res.status,
+      );
+    }
+
+    const json = (await res.json().catch(() => ({}))) as {
+      message?: string;
+      success?: boolean;
     };
-  }
+    await recordActivity("applied", id);
 
-  if (!res.ok) {
-    console.error(`[api] applyToJob failed: ${res.status} ${url}`);
-    const errorJson = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new JobsApiError(
-      errorJson.error || "Could not apply for job",
-      res.status,
+    return {
+      success: true,
+      message: json.message ?? "Application submitted",
+    };
+  } catch (error) {
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    console.error(
+      `[api] applyToJob error: status=${status ?? "n/a"} url=${url}`,
+      error,
     );
+    throw error;
   }
-
-  const json = (await res.json().catch(() => ({}))) as {
-    message?: string;
-    success?: boolean;
-  };
-  await recordActivity("applied", id);
-
-  return {
-    success: true,
-    message: json.message ?? "Application submitted",
-  };
 }

@@ -10,7 +10,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { fetchJobs, type Job } from "@/lib/api/jobs";
+import { fetchJobs, JobsApiError, type Job } from "@/lib/api/jobs";
 
 function salaryLabel(job: Job) {
   const { salaryMin, salaryMax, currency } = job;
@@ -73,7 +73,15 @@ export async function JobDiscovery() {
     });
     jobs = response.data.slice(0, 6);
   } catch (error) {
-    console.error("[job-discovery] Could not load recent jobs", error);
+    const status = error instanceof JobsApiError ? error.status : undefined;
+    const url =
+      typeof window === "undefined"
+        ? `${process.env.API_URL ?? "https://hireloop-server-blush.vercel.app/api"}/jobs?status=open&sort=newest&page=1&limit=6`
+        : `/backend/jobs?status=open&sort=newest&page=1&limit=6`;
+    console.error(
+      `[job-discovery] Could not load recent jobs status=${status ?? "n/a"} url=${url}`,
+      error,
+    );
     loadFailed = true;
   }
 
