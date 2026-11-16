@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bookmark,
   BriefcaseBusiness,
@@ -48,6 +49,7 @@ export function SettingsPage({
   image: string | null;
 }) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [fullName, setFullName] = useState(name);
   const [profile, setProfile] = useState<ProfileData>({
     headline: "",
@@ -60,10 +62,24 @@ export function SettingsPage({
   const [error, setError] = useState<string | null>(null);
   const [resumeName, setResumeName] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(image);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
+
+  useEffect(() => {
+    setAvatarPreview(image);
+  }, [image]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview && avatarPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -89,6 +105,61 @@ export function SettingsPage({
     };
     void loadProfile();
   }, []);
+
+  const onAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "image/jpeg" && file.type !== "image/png") {
+      showToast("Please choose a JPG or PNG image.", "error");
+      event.currentTarget.value = "";
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      showToast("Avatar must be 4MB or smaller.", "error");
+      event.currentTarget.value = "";
+      return;
+    }
+
+    const previousPreview = avatarPreview ?? image ?? null;
+    const localPreview = URL.createObjectURL(file);
+    setAvatarPreview(localPreview);
+    setAvatarUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await fetch("/backend/profile/avatar", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { data?: { image?: string }; error?: string }
+        | null;
+
+      if (!response.ok || !result?.data?.image) {
+        throw new Error(result?.error || "Could not upload avatar.");
+      }
+
+      await authClient.getSession({ query: { disableCookieCache: true } });
+      router.refresh();
+      setAvatarPreview(result.data.image);
+      showToast("Avatar updated.", "success");
+    } catch (caught) {
+      setAvatarPreview(previousPreview);
+      showToast(
+        caught instanceof Error ? caught.message : "Could not upload avatar.",
+        "error",
+      );
+    } finally {
+      URL.revokeObjectURL(localPreview);
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
 
   const addSkill = () => {
     const skill = skillDraft.trim();
@@ -255,26 +326,22 @@ export function SettingsPage({
                   <div className="mt-4 flex items-center gap-3">
                     <Avatar name={fullName || email} image={avatarPreview} large />
                     <div className="min-w-0">
-                      <label className="inline-flex h-7 cursor-pointer items-center rounded-md border border-white/10 px-2.5 text-[10px] font-medium text-white transition hover:bg-white/[0.05]">
-                        Change Avatar
+                      <label className={`inline-flex h-7 items-center gap-1.5 rounded-md border border-white/10 px-2.5 text-[10px] font-medium text-white transition hover:bg-white/[0.05] ${avatarUploading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+                        {avatarUploading && <LoaderCircle className="size-3 animate-spin" />}
+                        {avatarUploading ? "Uploading..." : "Change Avatar"}
                         <input
+                          ref={avatarInputRef}
                           type="file"
-                          accept="image/png,image/jpeg,image/webp"
+                          accept="image/png,image/jpeg"
                           className="sr-only"
+                          disabled={avatarUploading}
                           onChange={(event) => {
-                            const file = event.currentTarget.files?.[0];
-                            if (!file) return;
-                            if (file.size > 5 * 1024 * 1024) {
-                              setError("Choose an image smaller than 5MB.");
-                              return;
-                            }
-                            setAvatarPreview(URL.createObjectURL(file));
-                            setError(null);
+                            void onAvatarChange(event);
                           }}
                         />
                       </label>
                       <p className="mt-1.5 text-[9px] text-[#777781]">
-                        JPG or PNG. Max 5MB. Local preview only.
+                        JPG or PNG. Max 4MB.
                       </p>
                     </div>
                   </div>

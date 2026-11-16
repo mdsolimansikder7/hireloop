@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -41,10 +42,95 @@ export function AccountProfilePage({
   image: string | null;
 }) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [fullName, setFullName] = useState(name);
   const [avatarUrl, setAvatarUrl] = useState(image ?? "");
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const blobPreviewRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!blobPreviewRef.current) {
+      setAvatarUrl(image ?? "");
+    }
+  }, [image]);
+
+  useEffect(() => {
+    return () => {
+      if (blobPreviewRef.current) {
+        URL.revokeObjectURL(blobPreviewRef.current);
+      }
+    };
+  }, []);
+
+  const onAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "image/jpeg" && file.type !== "image/png") {
+      showToast("Please choose a JPG or PNG image.", "error");
+      event.currentTarget.value = "";
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      showToast("Avatar must be 4MB or smaller.", "error");
+      event.currentTarget.value = "";
+      return;
+    }
+
+    const previousAvatar = avatarUrl;
+    if (blobPreviewRef.current) {
+      URL.revokeObjectURL(blobPreviewRef.current);
+      blobPreviewRef.current = null;
+    }
+    const localPreview = URL.createObjectURL(file);
+    blobPreviewRef.current = localPreview;
+    setAvatarUrl(localPreview);
+    setAvatarUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await fetch("/backend/profile/avatar", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { data?: { image?: string }; error?: string }
+        | null;
+
+      if (!response.ok || !result?.data?.image) {
+        throw new Error(result?.error || "Could not upload avatar.");
+      }
+
+      await authClient.getSession({ query: { disableCookieCache: true } });
+      router.refresh();
+      if (blobPreviewRef.current) {
+        URL.revokeObjectURL(blobPreviewRef.current);
+        blobPreviewRef.current = null;
+      }
+      setAvatarUrl(result.data.image);
+      showToast("Avatar updated.", "success");
+    } catch (caught) {
+      if (blobPreviewRef.current) {
+        URL.revokeObjectURL(blobPreviewRef.current);
+        blobPreviewRef.current = null;
+      }
+      setAvatarUrl(previousAvatar);
+      showToast(
+        caught instanceof Error ? caught.message : "Could not upload avatar.",
+        "error",
+      );
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
 
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -160,6 +246,25 @@ export function AccountProfilePage({
                   <p className="mt-1 text-[10px] text-[#85858e]">
                     {ROLE_LABELS[role]} · {email}
                   </p>
+                  <div className="mt-2">
+                    <label className={`inline-flex h-7 items-center gap-1.5 rounded-md border border-white/10 px-2.5 text-[10px] font-medium text-white transition hover:bg-white/[0.05] ${avatarUploading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+                      {avatarUploading && <LoaderCircle className="size-3 animate-spin" />}
+                      {avatarUploading ? "Uploading..." : "Change Avatar"}
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        className="sr-only"
+                        disabled={avatarUploading}
+                        onChange={(event) => {
+                          void onAvatarChange(event);
+                        }}
+                      />
+                    </label>
+                    <p className="mt-1.5 text-[9px] text-[#777781]">
+                      JPG or PNG. Max 4MB.
+                    </p>
+                  </div>
                 </div>
               </div>
 
